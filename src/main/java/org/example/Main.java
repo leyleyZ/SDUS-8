@@ -1,23 +1,49 @@
+
 package org.example;
 
 import org.example.dao.DatabaseInitializer;
-import org.example.dao.UserDao;
 import org.example.ui.Authentication;
 
-import java.util.Scanner;
+import java.io.File;
 
 public class Main {
+
     public static void main(String[] args) {
-        // 1. Initialize Database[cite: 11]
-        DatabaseInitializer.initialize();
 
-        // 2. Instantiate Shared Utilities & Delegate Execution[cite: 11]
-        Scanner scanner = new Scanner(System.in);
-        UserDao userDao = new UserDao();
+        System.out.println("==========================================");
+        System.out.println(" STUDENT DORMITORY AND UTILITY BILLING");
+        System.out.println("==========================================");
 
-        // 3. Start Authentication
-        Authentication.start(scanner, userDao);
+        try {
 
-        scanner.close();
+            // SHOW DATABASE LOCATION
+            File databaseFile = new File("dormitory_billing.db");
+
+            System.out.println("\nDATABASE INFORMATION");
+            System.out.println("------------------------------------------");
+            System.out.println("Database Name: dormitory_billing.db");
+            System.out.println("Database Location: "
+                    + databaseFile.getAbsolutePath());
+            System.out.println("Database Exists: "
+                    + databaseFile.exists());
+            System.out.println("------------------------------------------");
+
+            // INITIALIZE DATABASE
+            DatabaseInitializer.initializeDatabase();
+
+            System.out.println("\nDatabase initialized successfully!");
+
+            // START AUTHENTICATION
+            Authentication authentication = new Authentication();
+
+            authentication.start();
+
+        } catch (Exception e) {
+
+            System.out.println("\nApplication startup failed!");
+            System.out.println("Error: " + e.getMessage());
+
+            e.printStackTrace();
+        }
     }
 }

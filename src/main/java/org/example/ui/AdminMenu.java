@@ -1,77 +1,112 @@
 package org.example.ui;
 
-import org.example.dao.UserDao;
+import org.example.dao.ActivityLogDao;
+import org.example.model.ActivityLog;
 import org.example.model.User;
 
 import java.util.List;
 import java.util.Scanner;
 
 public class AdminMenu {
+    private User currentUser;
+    private Scanner scanner;
+    private ActivityLogDao activityLogDao;
 
-    public static void start(Scanner scanner, UserDao userDao) {
-        boolean running = true;
-        while (running) {
-            System.out.println("\n========================================");
-            System.out.println("      DORMITORY BILLING ADMIN MENU      ");
-            System.out.println("========================================");
-            System.out.println("1. View All System Users");
-            System.out.println("2. View Pending Registrations");
-            System.out.println("3. Approve User Account");
-            System.out.println("0. Logout");
-            System.out.print("Choose an option: ");
+    public AdminMenu(User currentUser, Scanner scanner) {
+        this.currentUser = currentUser;
+        this.scanner = scanner;
+        this.activityLogDao = new ActivityLogDao();
+    }
 
-            int choice = scanner.nextInt();
+    public void start() {
+        int choice;
+        do {
+            System.out.println("\n======== SYSTEM AUDIT LOGS ========");
+            System.out.println("1. View All Activity Logs");
+            System.out.println("2. Filter Logs by User ID");
+            System.out.println("0. Back to Admin Menu");
+            System.out.println("=================================");
+            System.out.print("Enter choice: ");
+
+            while (!scanner.hasNextInt()) {
+                System.out.println("Invalid input. Please enter a number.");
+                scanner.next();
+            }
+            choice = scanner.nextInt();
             scanner.nextLine(); // consume newline
 
             switch (choice) {
-                case 1 -> displayUserTable(userDao.getAllUsers());
-                case 2 -> displayUserTable(userDao.getPendingUsers());
-                case 3 -> approveAccountFlow(scanner, userDao);
-                case 0 -> {
-                    System.out.println("Logging out...");
-                    running = false;
-                }
-                default -> System.out.println("Invalid option. Please try again.");
+                case 1:
+                    displayAllLogs();
+                    break;
+                case 2:
+                    filterLogsByUser();
+                    break;
+                case 0:
+                    System.out.println("Returning to Admin Menu...");
+                    break;
+                default:
+                    System.out.println("Invalid choice! Try again.");
             }
+        } while (choice != 0);
+    }
+
+    public void displayAllLogs() {
+        List<ActivityLog> logs = activityLogDao.getAllLogs();
+
+        System.out.println("\n======== SYSTEM AUDIT LOGS ========");
+        System.out.printf("%-6s | %-7s | %-15s | %-35s | %-20s%n", "LOG ID", "USER ID", "EVENT TYPE", "DESCRIPTION", "TIMESTAMP");
+        System.out.println("-".repeat(95));
+
+        if (logs.isEmpty()) {
+            System.out.println("No activity logs found.");
+            return;
+        }
+
+        for (ActivityLog log : logs) {
+            System.out.printf("%-6d | %-7d | %-15s | %-35s | %-20s%n",
+                    log.getId(),
+                    log.getUserId(),
+                    log.getActionType(),
+                    log.getDescription(),
+                    log.getTimestamp()
+            );
         }
     }
 
-    private static void displayUserTable(List<User> users) {
-        if (users.isEmpty()) {
-            System.out.println("\nNo records found.");
-            return;
+    public void filterLogsByUser() {
+        System.out.print("Enter User ID to filter (0 to cancel): ");
+        while (!scanner.hasNextInt()) {
+            System.out.println("Invalid input. Please enter a valid User ID number.");
+            scanner.next();
         }
-        System.out.println("\n--------------------------------------------------------");
-        System.out.printf("%-5s %-15s %-12s %-10s%n", "ID", "USERNAME", "ROLE", "STATUS");
-        System.out.println("--------------------------------------------------------");
-        for (User u : users) {
-            System.out.printf("%-5d %-15s %-12s %-10s%n",
-                    u.getId(), u.getUsername(), u.getRole(), u.getStatus());
-        }
-        System.out.println("--------------------------------------------------------");
-    }
-
-    private static void approveAccountFlow(Scanner scanner, UserDao userDao) {
-        List<User> pendingUsers = userDao.getPendingUsers();
-        if (pendingUsers.isEmpty()) {
-            System.out.println("\nNo pending registrations found.");
-            return;
-        }
-        displayUserTable(pendingUsers);
-        System.out.print("Enter Target User ID to approve (or 0 to cancel): ");
-        int targetId = scanner.nextInt();
+        int targetUserId = scanner.nextInt();
         scanner.nextLine();
 
-        if (targetId == 0) {
-            System.out.println("Approval cancelled.");
+        if (targetUserId == 0) {
             return;
         }
 
-        boolean success = userDao.approveUser(targetId);
-        if (success) {
-            System.out.println("Success! User ID " + targetId + " status changed to 'APPROVED'.");
-        } else {
-            System.out.println("Failed to approve. Please verify if the ID exists in the pending list.");
+        System.out.println("\nShowing logs for User ID: " + targetUserId);
+        List<ActivityLog> logs = activityLogDao.getLogsByUserId(targetUserId);
+
+        if (logs.isEmpty()) {
+            System.out.println("\nNo activity logs found.");
+            return;
+        }
+
+        System.out.println("\n======== SYSTEM AUDIT LOGS ========");
+        System.out.printf("%-6s | %-7s | %-15s | %-35s | %-20s%n", "LOG ID", "USER ID", "EVENT TYPE", "DESCRIPTION", "TIMESTAMP");
+        System.out.println("-".repeat(95));
+
+        for (ActivityLog log : logs) {
+            System.out.printf("%-6d | %-7d | %-15s | %-35s | %-20s%n",
+                    log.getId(),
+                    log.getUserId(),
+                    log.getActionType(),
+                    log.getDescription(),
+                    log.getTimestamp()
+            );
         }
     }
 }
